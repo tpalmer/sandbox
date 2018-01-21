@@ -5,6 +5,8 @@ NIST = ['nist1-macon.macon.ga.us', 'time.apple.com', 'time.windows.com']
 
 ntp = ntplib.NTPClient()
 
+# TODO: Allow the user to select which server to query
+# TODO: Add more comments
 for ntpServer in NIST:
     ntpResponse = None
     try:
