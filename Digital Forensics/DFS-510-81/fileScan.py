@@ -1,3 +1,4 @@
+import os
 import argparse
 
 # 1) Allow a user to specify a directory
@@ -11,12 +12,16 @@ parser.add_argument(
 )
 
 parsedArgs = parser.parse_args()
-
-if parsedArgs.path:
-    print "Path: " + parsedArgs.path
+path = parsedArgs.path
 
 # 2) Validate that the directory exists  (provide a meaningful error message if
 #    it does not)
+if os.path.exists(path):
+    if path:
+        print "Path: " + path
+else:
+    print "Not a valid directory"
+
 # 3) Using the OS module and the function os.listdir() obtain the list of files
 #    that exist in the specified directory.
 # 4) For each file in the directory produce the following output for each File;
