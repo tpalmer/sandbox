@@ -1,3 +1,10 @@
+#!/usr/bin/python
+#
+# myNTP : Query an NTP server
+# Author: T. Palmer
+#
+# Initial Release: January 2018  Version 1.0.0
+
 import ntplib
 import time
 
