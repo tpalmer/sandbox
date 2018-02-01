@@ -7,11 +7,15 @@ Initial Release: February 2018  Version 1.0.0
 
 import os
 import argparse
+import pprint
 
 
+# 5) Document each step of your script in great detail
 class LogScan:
+    foundWorms = {}
+
     def perform(self):
-        # 1) Prompts the user for the log file name (via command line)
+        # 1) Prompt the user for the log file name (via command line)
         parser = argparse.ArgumentParser(
             'Generate a report from a given log file'
         )
@@ -26,36 +30,36 @@ class LogScan:
         parsedArgs = parser.parse_args()
         fileName = parsedArgs.fileName
 
-        # 2) Attempt to open the file, provide a meaningful error messages if
-        #  anything goes wrong
+        if not os.path.exists(fileName):
+            print "Please provide a valid filename"
+            return
+
+        # 2) Attempt to open the file, provide a meaningful error message if
+        #    anything goes wrong
         fileContents = self.verifyAndOpenFile(fileName)
         if fileContents:
-            print('File exists: ' + fileContents)
-
             # 3) For each line in the file
             #    a) Determine if the line contains the word "worm"
             #    b) Create a list of worms that are identified throughout the
             #       file
-            # 4) Generate a report that contains the information regarding each
-            #    UNIQUE worms identified
-            # 5) Document each step of your script in great detail
+            for lineNumber, line in enumerate(fileContents):
+                if "worm" in line.lower():
+                    self.foundWorms[lineNumber] = line
+
+    # 4) Generate a report that contains the information regarding each
+    #    UNIQUE worms identified
+    def generateReport(self):
+        pprint.pprint(self.foundWorms.keys())
 
     def verifyAndOpenFile(self, path):
         if self.isValidFile(path):
             try:
-                openFile = open(path, 'rb')
+                openFile = open(path, 'r')
             except IOError:
                 print('Failed to open: ' + path)
                 return
             else:
-                try:
-                    contents = openFile.read()
-                except IOError:
-                    openFile.close()
-                    print('Failed to read: ' + path)
-                    return
-                else:
-                    return contents
+                return openFile
 
     def isValidFile(self, path):
         # Verify that the path is valid, is not a symbolic link, and is real
@@ -69,3 +73,4 @@ class LogScan:
 
 scanner = LogScan()
 scanner.perform()
+scanner.generateReport()
