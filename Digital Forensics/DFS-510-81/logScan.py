@@ -1,5 +1,5 @@
 """
-Extract information from a logfile.
+Extract information from a given logfile.
 
 Author: T. Palmer
 Initial Release: February 2018  Version 1.0.0
@@ -7,10 +7,8 @@ Initial Release: February 2018  Version 1.0.0
 
 import os
 import argparse
-import pprint
 
 
-# 5) Document each step of your script in great detail
 class LogScan:
     foundWorms = {}
 
@@ -34,8 +32,8 @@ class LogScan:
             print "Please provide a valid filename"
             return
 
-        # 2) Attempt to open the file, provide a meaningful error message if
-        #    anything goes wrong
+        # 2) Attempt to open the file, and provide a meaningful error message
+        #    if anything goes wrong
         fileContents = self.verifyAndOpenFile(fileName)
         if fileContents:
             # 3) For each line in the file
@@ -43,14 +41,42 @@ class LogScan:
             #    b) Create a list of worms that are identified throughout the
             #       file
             for lineNumber, line in enumerate(fileContents):
-                if "worm" in line.lower():
-                    self.foundWorms[lineNumber] = line
+                # Create a list of all the words on this line and iterate
+                # across it
+                lineList = line.split(' ')
+                for element in lineList:
+                    if "worm" in element.lower():
+                        count = 1
+                        numbers = [lineNumber]
+                        # If the worm has already been found, increase the
+                        # count and add the line number to the list
+                        if element in self.foundWorms:
+                            existing = self.foundWorms[element]
+                            count = existing["count"] + 1
+                            numbers = existing["lineNumbers"] + [lineNumber]
+                        # Store the relevant data points in a dictionary
+                        # using the worm name as the key
+                        self.foundWorms[element] = {
+                            "lineNumbers": numbers,
+                            "count": count
+                        }
 
     # 4) Generate a report that contains the information regarding each
     #    UNIQUE worms identified
     def generateReport(self):
-        pprint.pprint(self.foundWorms.keys())
+        for foundWorm in self.foundWorms:
+            lineNumbers = str(self.foundWorms[foundWorm]["lineNumbers"])
+            lineNumbers = "".join([str(x) for x in lineNumbers])
+            count = str(self.foundWorms[foundWorm]["count"])
+            times = "times"
+            if count == "1":
+                times = "time"
+            print(
+                "Found " + foundWorm + " " + count + " " + times +
+                " on lines " + lineNumbers
+            )
 
+    # If this file is valid, attempt to open it and return the opened file
     def verifyAndOpenFile(self, path):
         if self.isValidFile(path):
             try:
@@ -61,8 +87,8 @@ class LogScan:
             else:
                 return openFile
 
+    # Verify that the path is valid, is not a symbolic link, and is real
     def isValidFile(self, path):
-        # Verify that the path is valid, is not a symbolic link, and is real
         if (os.path.exists(path) and
            not os.path.islink(path) and
            os.path.isfile(path)):
