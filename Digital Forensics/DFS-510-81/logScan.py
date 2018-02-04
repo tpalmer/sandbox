@@ -17,7 +17,6 @@ class LogScan:
         parser = argparse.ArgumentParser(
             'Generate a report from a given log file'
         )
-
         parser.add_argument(
             "-f",
             "--fileName",
@@ -64,17 +63,20 @@ class LogScan:
     # 4) Generate a report that contains the information regarding each
     #    UNIQUE worms identified
     def generateReport(self):
-        for foundWorm in self.foundWorms:
-            lineNumbers = str(self.foundWorms[foundWorm]["lineNumbers"])
-            lineNumbers = "".join([str(x) for x in lineNumbers])
-            count = str(self.foundWorms[foundWorm]["count"])
-            times = "times"
-            if count == "1":
-                times = "time"
-            print(
-                "Found " + foundWorm + " " + count + " " + times +
-                " on lines " + lineNumbers
-            )
+        if len(self.foundWorms.keys()) > 0:
+            for foundWorm in self.foundWorms:
+                lineNumbers = str(self.foundWorms[foundWorm]["lineNumbers"])
+                lineNumbers = "".join([str(x) for x in lineNumbers])
+                count = str(self.foundWorms[foundWorm]["count"])
+                times = "times"
+                if count == "1":
+                    times = "time"
+                print(
+                    "Found " + foundWorm + " " + count + " " + times +
+                    " on lines " + lineNumbers
+                )
+        else:
+            print("No instances of 'worm' found.")
 
     # If this file is valid, attempt to open it and return the opened file
     def verifyAndOpenFile(self, path):
