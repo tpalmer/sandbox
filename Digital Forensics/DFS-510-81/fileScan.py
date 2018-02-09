@@ -1,11 +1,31 @@
+"""
+Calculate MD5 Hash of files in provided directory.
+
+Author: T. Palmer
+Initial Release: February 2018  Version 1.0.0
+"""
+
 import os
 import argparse
 import hashlib
 import time
+import logging
 import pprint
+
+# 5) If you encounter an exception while processing the files write the
+#    information associated with the exception to a python log file (you will
+#    need to import the logging module)
+logging.basicConfig(
+    filename='fileScanLog.log',
+    level=logging.DEBUG,
+    format='%(asctime)s %(message)s'
+)
+logger = logging.getLogger('com.palmer.filescan')
 
 
 class FileScan:
+    parsedArgs = None
+
     def perform(self):
         # 1) Allow a user to specify a directory
         parser = argparse.ArgumentParser(
@@ -19,13 +39,13 @@ class FileScan:
             required=True
         )
 
-        parsedArgs = parser.parse_args()
-        path = parsedArgs.path
+        self.parsedArgs = parser.parse_args()
+        path = self.parsedArgs.path
 
         # 2) Validate that the directory exists  (provide a meaningful error
         # message if it does not)
         if not os.path.exists(path):
-            print "Please provide a valid directory"
+            logger.error("Please provide a valid directory")
             return
 
         # 3) Using the OS module and the function os.listdir() obtain the list
@@ -33,8 +53,11 @@ class FileScan:
         fileDictionary = {}
         for filePath in os.listdir(path):
             fullPath = os.path.join(path, filePath)
-            fileContents = self.verifyAndOpenFile(fullPath)
+            openedFile = self.validateAndOpenFile(fullPath, 'rb')
+            if not openedFile:
+                break
 
+            fileContents = self.readFile(openedFile)
             if fileContents:
                 hashValue = self.fileHash(fileContents)
                 localModifiedTime = time.ctime(os.path.getmtime(fullPath))
@@ -46,6 +69,8 @@ class FileScan:
                         'modifiedTime': localModifiedTime,
                         'md5': hashValue
                     }
+
+            openedFile.close()
 
         # 4) For each file in the directory produce the following output for
         # each File; sorted by FileSize (largest file first)
@@ -60,31 +85,42 @@ class FileScan:
         )
         pprint.pprint(sortedDictionary)
 
-    def verifyAndOpenFile(self, path):
+    # If this file is valid, attempt to open it and return the opened file
+    def validateAndOpenFile(self, path, mode):
         if self.isValidFile(path):
-            try:
-                openFile = open(path, 'rb')
-            except IOError:
-                print('Failed to open: ' + path)
-                return
-            else:
-                try:
-                    contents = openFile.read()
-                except IOError:
-                    openFile.close()
-                    print('Failed to read: ' + path)
-                    return
-                else:
-                    return contents
+            return self.openFile(path, mode)
+        else:
+            return None
 
+    # Verify that the path is valid, is not a symbolic link, and is real
     def isValidFile(self, path):
-        # Verify that the path is valid, is not a symbolic link, and is real
         if (os.path.exists(path) and
            not os.path.islink(path) and
            os.path.isfile(path)):
             return True
         else:
-            print(path + ' is not a valid file.')
+            logger.error(path + ' is not a valid file.')
+            return False
+
+    # Attempt to open the file and return it
+    def openFile(self, path, mode):
+        try:
+            openFile = open(path, mode)
+        except IOError:
+            logger.error('Failed to open: ' + path)
+            return
+        else:
+            return openFile
+
+    def readFile(self, openedFile):
+        try:
+            contents = openedFile.read()
+        except IOError:
+            openedFile.close()
+            logger.error('Failed to read: ' + openedFile)
+            return
+        else:
+            return contents
 
     # Calcuate the MD5 hash
     def fileHash(self, contents):
@@ -92,13 +128,6 @@ class FileScan:
         hash.update(contents)
         hexMD5 = hash.hexdigest()
         return hexMD5.upper()
-# 5) If you encounter an exception while processing the files write the
-#    information associated with the exception to a python log file (you will
-#    need to import the logging module)
-# 6) You will submit one python file  fileScan.py
-# 7) The file will contain documentation regarding the following:
-#     b) Outline of your approach
-#     c) Detailed documentation of each step
 
 
 scanner = FileScan()
