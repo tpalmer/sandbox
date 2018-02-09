@@ -13,8 +13,7 @@ import logging
 import pprint
 
 # 5) If you encounter an exception while processing the files write the
-#    information associated with the exception to a python log file (you will
-#    need to import the logging module)
+#    information associated with the exception to a python log file
 logging.basicConfig(
     filename='fileScanLog.log',
     level=logging.DEBUG,
@@ -43,14 +42,13 @@ class FileScan:
         self.parsedArgs = parser.parse_args()
         path = self.parsedArgs.path
 
-        # 2) Validate that the directory exists  (provide a meaningful error
-        # message if it does not)
+        # 2) Validate that the directory exists
         if not os.path.exists(path):
             logger.error("Please provide a valid directory")
             return
 
         # 3) Using the OS module and the function os.listdir() obtain the list
-        # of files that exist in the specified directory.
+        #    of files that exist in the specified directory.
         for filePath in os.listdir(path):
             fullPath = os.path.join(path, filePath)
             openedFile = self.validateAndOpenFile(fullPath, 'rb')
@@ -77,6 +75,7 @@ class FileScan:
         #    Path    FileName    FileSize   Last-Modified-Time  MD5 Hash
         #
         # Sort output by file size
+        # TODO: Format and clean up this output a bit
         sortedDictionary = sorted(
             self.fileDictionary.items(),
             key=lambda x: x[1]['sizeInBytes'],
@@ -111,6 +110,7 @@ class FileScan:
         else:
             return openFile
 
+    # Attempt to read the file contents and return them
     def readFile(self, openedFile):
         try:
             contents = openedFile.read()
@@ -121,7 +121,7 @@ class FileScan:
         else:
             return contents
 
-    # Calcuate the MD5 hash
+    # Calcuate an MD5 hash of given contents
     def fileHash(self, contents):
         hash = hashlib.md5()
         hash.update(contents)
