@@ -24,6 +24,7 @@ logger = logging.getLogger('com.palmer.filescan')
 
 
 class FileScan:
+    fileDictionary = {}
     parsedArgs = None
 
     def perform(self):
@@ -50,7 +51,6 @@ class FileScan:
 
         # 3) Using the OS module and the function os.listdir() obtain the list
         # of files that exist in the specified directory.
-        fileDictionary = {}
         for filePath in os.listdir(path):
             fullPath = os.path.join(path, filePath)
             openedFile = self.validateAndOpenFile(fullPath, 'rb')
@@ -62,13 +62,12 @@ class FileScan:
                 hashValue = self.fileHash(fileContents)
                 localModifiedTime = time.ctime(os.path.getmtime(fullPath))
 
-                if fullPath not in fileDictionary:
-                    fileDictionary[fullPath] = {
-                        'name': os.path.basename(fullPath),
-                        'sizeInBytes': os.path.getsize(fullPath),
-                        'modifiedTime': localModifiedTime,
-                        'md5': hashValue
-                    }
+                self.fileDictionary[fullPath] = {
+                    'name': os.path.basename(fullPath),
+                    'sizeInBytes': os.path.getsize(fullPath),
+                    'modifiedTime': localModifiedTime,
+                    'md5': hashValue
+                }
 
             openedFile.close()
 
@@ -79,7 +78,7 @@ class FileScan:
         #
         # Sort output by file size
         sortedDictionary = sorted(
-            fileDictionary.items(),
+            self.fileDictionary.items(),
             key=lambda x: x[1]['sizeInBytes'],
             reverse=True
         )
