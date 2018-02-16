@@ -3,6 +3,8 @@ Calculate MD5 Hash of files in provided directory.
 
 Author: T. Palmer
 Initial Release: February 2018  Version 1.0.0
+
+Required PyPI Library: texttable
 """
 
 import os
@@ -10,7 +12,7 @@ import argparse
 import hashlib
 import time
 import logging
-import pprint
+from texttable import Texttable
 
 # 5) If you encounter an exception while processing the files write the
 #    information associated with the exception to a python log file
@@ -23,7 +25,7 @@ logger = logging.getLogger('com.palmer.filescan')
 
 
 class FileScan:
-    fileDictionary = {}
+    sortedFileList = []
     parsedArgs = None
 
     def perform(self):
@@ -49,6 +51,7 @@ class FileScan:
 
         # 3) Using the OS module and the function os.listdir() obtain the list
         #    of files that exist in the specified directory.
+        tempDictionary = {}
         for filePath in os.listdir(path):
             fullPath = os.path.join(path, filePath)
             openedFile = self.validateAndOpenFile(fullPath, 'rb')
@@ -60,7 +63,7 @@ class FileScan:
                 hashValue = self.fileHash(fileContents)
                 localModifiedTime = time.ctime(os.path.getmtime(fullPath))
 
-                self.fileDictionary[fullPath] = {
+                tempDictionary[fullPath] = {
                     'name': os.path.basename(fullPath),
                     'sizeInBytes': os.path.getsize(fullPath),
                     'modifiedTime': localModifiedTime,
@@ -69,19 +72,37 @@ class FileScan:
 
             openedFile.close()
 
+        self.sortedFileList = sorted(
+            tempDictionary.items(),
+            key=lambda x: x[1]['sizeInBytes'],
+            reverse=True
+        )
+        self.generateReport()
+
+    def generateReport(self):
         # 4) For each file in the directory produce the following output for
         # each File; sorted by FileSize (largest file first)
         #
         #    Path    FileName    FileSize   Last-Modified-Time  MD5 Hash
         #
         # Sort output by file size
-        # TODO: Format and clean up this output a bit
-        sortedDictionary = sorted(
-            self.fileDictionary.items(),
-            key=lambda x: x[1]['sizeInBytes'],
-            reverse=True
-        )
-        pprint.pprint(sortedDictionary)
+        table = Texttable()
+        table.add_row([
+            "Path",
+            "FileName",
+            "FileSize",
+            "Last-Modified-Time",
+            "MD5-Hash"
+        ])
+        for path, fileDictionary in self.sortedFileList:
+            table.add_row([
+                path,
+                fileDictionary["name"],
+                fileDictionary["sizeInBytes"],
+                fileDictionary["modifiedTime"],
+                fileDictionary["md5"]
+            ])
+        print(table.draw())
 
     # If this file is valid, attempt to open it and return the opened file
     def validateAndOpenFile(self, path, mode):
