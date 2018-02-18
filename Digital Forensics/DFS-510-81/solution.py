@@ -10,21 +10,109 @@ import argparse
 import hashlib
 import logging
 
-logging.basicConfig(
-    filename='magicFinderLog.log',
-    level=logging.DEBUG,
-    format='%(asctime)s %(message)s'
-)
-logger = logging.getLogger('com.palmer.magicfinder')
 
-
+# 5) The script will:
+#     a) Setup the logfile for recording information
+#     b) Open the input file for "read-binary"
+#        Record information about the input file to the log. (and the screen
+#        if verbose is selected)
+#         File Path
+#         File Size
+#         Last-Modified-Time
+#     c) Open the output file for writing
+#     d) Read the first 32 bytes of the inputFile convert them to a Hex ASCII
+#        representation (hint use the binascii standard library) and then
+#        write them to the output file
+#     e) Close Both Files once all bytes have been written
+#     f) Record information about the output file to the log (and to the
+#        screen if verbose is selected)
 class MagicFinder:
     """Responsible for magic number extraction business logic."""
 
     parsedArgs = None
+    logger = None
+    outputFile = None
+    inputFileStats = None
+
+    def __init__(self):
+        """Magic number finder constructor."""
+        self.setupParsedArguments()
+
+        # A welcome message will be displayed along with the details of the
+        # arguments specified by the user.  If the verbose option is NOT
+        # specified, you will run silently unless a major error occurs.
+        self.printOut("DFS-510 Week 7 Solution")
+        self.printOut("Professor Hosmer, February 2018\n")
+        self.printOut("Input File: " + self.parsedArgs.inputFile.name)
+        self.printOut("Output File: " + self.parsedArgs.outputFile)
+        self.printOut("Log File: " + self.parsedArgs.logFile + "\n")
+        self.printOut("Creating Log File")
+        self.setupLogger()
+        self.logger.info("Week 7 Solution, Professor Hosmer")
 
     def perform(self):
         """Perform magic number extraction business logic."""
+        self.printOut("Extracting File Stats ...")
+        self.inputFileStats = os.fstat(self.parsedArgs.inputFile.fileno())
+
+        # self.printOut("Opening the Input File ...")
+        # self.logger.info(
+        #     "File: " + self.parsedArgs.inputFile.name +
+        #     " Open File Success"
+        # )
+        self.printOut("Reading the Input File Contents ...")
+        inputContents = self.readFile(self.parsedArgs.inputFile)
+        self.logger.info(
+            "File: " + self.parsedArgs.inputFile.name +
+            " Read the file stats Sucess"
+        )
+
+        self.printOut("Hashing the File Contents - SHA256 ...")
+        fileHash = self.fileHash(inputContents)
+        self.logger.info(
+            "File: " + self.parsedArgs.inputFile.name +
+            " SHA256: " + fileHash
+        )
+        self.printOut("Reading the first 32 bytes of the file ...")
+        # 5d) Read the first 32 bytes of the inputFile convert them to a Hex
+        # ASCII representation (hint use the binascii standard library) and
+        # then write them to the output file
+        # TODO: Read the magic number from the inputFile
+        magicNumber = "32-42-12-43"
+        self.logger.info(
+            "File: " + self.parsedArgs.inputFile.name +
+            " Header Read: " + magicNumber
+        )
+
+        self.printOut("Creating the Output File and Recording the Results ...")
+        # 3) Validate the outputFile during creation. if any errors occur
+        #    report and log them and abort the script.
+        # 5c) Open the output file for writing
+        # Record information about the input file:
+        #         File Path
+        #         File Size
+        #         Last-Modified-Time
+        # TODO: Open and write to output file
+        outputFile = self.validateAndOpenFile(self.parsedArgs.outputFile, 'w')
+        # Your output file should look like this.
+        #
+        # File Name: Solution.py
+        # File Size: 7570
+        # Last Modified: Wed Oct 25 17:26:16 2017
+        # SHA256 Hash: 2f1cfd7abc52bee5b5ce1d8b591f9f75e3a73935d980b9ace022a9028e84adb8
+        # File Header: 27-27-27-0d-0a-44-46-53-2d-35-31-30-20-57-45-45-4b-20-37-20-53-4f-4c-55-54-49-4f-4e-0d-0a-50-52
+        outputFile.write("File Name: " + self.parsedArgs.inputFile.name)
+        outputFile.write("File Size: " + self.inputFileStats.st_size())
+
+        # 5f) Record information about the output file to the log (and to the
+        #     screen if verbose is selected)
+        # 5e) Close Both Files once all bytes have been written
+        self.parsedArgs.inputFile.close()
+        outputFile.close()
+        self.printOut("Script Complete")
+
+    def setupParsedArguments(self):
+        """Initialize parsedArgs."""
         parser = argparse.ArgumentParser(
             'solution'
         )
@@ -41,6 +129,7 @@ class MagicFinder:
         #    Report any errors and abort.
         # -i inputFile (this argument is mandatory and requires the user to
         #    specify a single input file)
+        # 5b) Open the input file for "read-binary"
         parser.add_argument(
             "-i",
             "--inputFile",
@@ -64,10 +153,29 @@ class MagicFinder:
             "-l",
             "--logFile",
             help="The file to log activity information to",
-            default='solutionLog.txt'
+            default='magicFinderLog.log'
         )
 
         self.parsedArgs = parser.parse_args()
+
+    def setupLogger(self):
+        """Initialize logger."""
+        # 2) Validate the logFile during creation.  If any errors occur report
+        #    them and abort.
+        # 5a) Setup the logfile for recording information
+        logging.basicConfig(
+            filename=self.parsedArgs.logFile,
+            level=logging.DEBUG,
+            format='%(asctime)s %(message)s'
+        )
+        self.logger = logging.getLogger('com.palmer.magicfinder')
+
+    def printOut(self, message):
+        """If the verbose option is set, print the passed message."""
+        # 4) If the verbose option is specified then meaningful output is
+        #    provided for each major step of the script.
+        if self.parsedArgs.verbose:
+            print(message)
 
     def validateAndOpenFile(self, path, mode):
         """If the file is valid, open it and return the opened file."""
@@ -83,7 +191,7 @@ class MagicFinder:
            os.path.isfile(path)):
             return True
         else:
-            logger.error(path + ' is not a valid file.')
+            self.logger.error(path + ' is not a valid file.')
             return False
 
     def openFile(self, path, mode):
@@ -91,7 +199,7 @@ class MagicFinder:
         try:
             openFile = open(path, mode)
         except IOError:
-            logger.error('Failed to open: ' + path)
+            self.logger.error('Failed to open: ' + path)
             return
         else:
             return openFile
@@ -102,11 +210,12 @@ class MagicFinder:
             contents = openedFile.read()
         except IOError:
             openedFile.close()
-            logger.error('Failed to read: ' + openedFile)
+            self.logger.error('Failed to read: ' + openedFile)
             return
         else:
             return contents
 
+    # TODO: Convert to SHA256 hash
     def fileHash(self, contents):
         """Calcuate an MD5 hash of given contents."""
         hash = hashlib.md5()
@@ -117,65 +226,3 @@ class MagicFinder:
 
 magicFinder = MagicFinder()
 magicFinder.perform()
-
-
-# 2) Validate the logFile during creation.  If any errors occur report them
-#    and abort the script.
-# 3) Validate the outputFile during creation. if any errors occur report and
-#    log them and abort the script.
-# 4) If the verbose option is specified then you will provide meaningful
-#    output for each major step of the script.  In addition, a welcome message
-#    will be displayed along with the details of the arguments specified by
-#    the user.  If the verbose option is NOT specified, you will run silently
-#    unless a major error occurs.
-# 5) The script will:
-#     a) Setup the logfile for recording information
-#     b) Open the input file for "read-binary"
-#        Record information about the input file to the log. (and the screen
-#        if verbose is selected)
-#         File Path
-#         File Size
-#         Last-Modified-Time
-#     b) Open the output file for writing
-#     c) Read the first 32 bytes of the inputFile convert them to a Hex ASCII
-#        representation (hint use the binascii standard library) and then
-#        write them to the output file
-#     d) Close Both Files once all bytes have been written
-#     e) Record information about the output file to the log (and to the
-#        screen if verbose is selected)
-#
-# Your output file should look like this.
-#
-# File Name: Solution.py
-# File Size: 7570
-# Last Modified: Wed Oct 25 17:26:16 2017
-# SHA256 Hash: 2f1cfd7abc52bee5b5ce1d8b591f9f75e3a73935d980b9ace022a9028e84adb8
-# File Header: 27-27-27-0d-0a-44-46-53-2d-35-31-30-20-57-45-45-4b-20-37-20-53-4f-4c-55-54-49-4f-4e-0d-0a-50-52
-#
-# Your Log file should look like this.
-#
-# 2017-10-25 17:19:30,433 Week 7 Solution, Professor Hosmer
-# 2017-10-25 17:19:30,433 File: Solution.py Read the file stats Sucess
-# 2017-10-25 17:19:30,433 File: Solution.py Open File Success
-# 2017-10-25 17:19:30,433 File: Solution.py File Contents Read Success
-# 2017-10-25 17:19:30,433 File: Solution.py SHA256: 18496a26e116e0c0d93984e8102e2d86a5310c65e23bcd0a13ad22334d86b016
-# 2017-10-25 17:19:30,433 File: Solution.py Header Read: 27-27-27-0d-0a-44-46-53-2d-35-31-30-20-57-45-45-4b-20-37-20-53-4f-4c-55-54-49-4f-4e-0d-0a-50-52-
-#
-# Your Screen Output when Verbose is selected should look like this.
-#
-# DFS-510 Week 7 Solution
-# Professor Hosmer, October 2017
-#
-# Input File: ProfessorSolution.py
-# Output File: result.txt
-# Log File: log.txt
-#
-# Creating Log File
-# Extracting File Stats ...
-# Opening the Input File ...
-# Reading the Input File Contents ...
-# Hashing the File Contents - SHA256 ...
-# Reading the first 32 bytes of the file ...
-# Creating the Output File and Recording the Results ...
-#
-# Script Complete
