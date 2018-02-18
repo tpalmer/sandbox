@@ -1,14 +1,124 @@
-# Arguments include the following:
-# -v verbose  (this argument will be optional)
-# -i inputFile (this argument is mandatory and requires the user to specify a
-#    single input file) You must validate the inputFile exists, and is
-#    readable, during within argparse.
-# -o outputFile (this argument is mandatory and requires the user to specify a
-#    single output file)
-# -l logFile  (this argument will specify the log file to be used to record
-#    results and exceptions)
-#
-# 1) Validate the inputFile from within argparse and report any errors abort.
+"""
+Extract the magic number of a file.
+
+Author: T. Palmer
+Initial Release: February 2018  Version 1.0.0
+"""
+
+import os
+import argparse
+import hashlib
+import logging
+
+logging.basicConfig(
+    filename='magicFinderLog.log',
+    level=logging.DEBUG,
+    format='%(asctime)s %(message)s'
+)
+logger = logging.getLogger('com.palmer.magicfinder')
+
+
+class MagicFinder:
+    """Responsible for magic number extraction business logic."""
+
+    parsedArgs = None
+
+    def perform(self):
+        """Perform magic number extraction business logic."""
+        parser = argparse.ArgumentParser(
+            'solution'
+        )
+
+        # -v verbose (optional)
+        parser.add_argument(
+            "-v",
+            "--verbose",
+            help="Be more verbose with output",
+            action="store_true"
+        )
+
+        # 1) Validate the inputFile exists, and is readable within argparse.
+        #    Report any errors and abort.
+        # -i inputFile (this argument is mandatory and requires the user to
+        #    specify a single input file)
+        parser.add_argument(
+            "-i",
+            "--inputFile",
+            help="The file to extract the magic number from",
+            type=argparse.FileType('rb'),
+            required=True
+        )
+
+        # -o outputFile (this argument is mandatory and requires the user to
+        #    specify a single output file)
+        parser.add_argument(
+            "-o",
+            "--outputFile",
+            help="The file to write magic number information to",
+            required=True
+        )
+
+        # -l logFile (this argument will specify the log file to be used to
+        #    record results and exceptions)
+        parser.add_argument(
+            "-l",
+            "--logFile",
+            help="The file to log activity information to",
+            default='solutionLog.txt'
+        )
+
+        self.parsedArgs = parser.parse_args()
+
+    def validateAndOpenFile(self, path, mode):
+        """If the file is valid, open it and return the opened file."""
+        if self.isValidFile(path):
+            return self.openFile(path, mode)
+        else:
+            return None
+
+    def isValidFile(self, path):
+        """Verify the path is valid, is not a symbolic link, and is real."""
+        if (os.path.exists(path) and
+           not os.path.islink(path) and
+           os.path.isfile(path)):
+            return True
+        else:
+            logger.error(path + ' is not a valid file.')
+            return False
+
+    def openFile(self, path, mode):
+        """Attempt to open the file and return it."""
+        try:
+            openFile = open(path, mode)
+        except IOError:
+            logger.error('Failed to open: ' + path)
+            return
+        else:
+            return openFile
+
+    def readFile(self, openedFile):
+        """Attempt to read the file contents and return them."""
+        try:
+            contents = openedFile.read()
+        except IOError:
+            openedFile.close()
+            logger.error('Failed to read: ' + openedFile)
+            return
+        else:
+            return contents
+
+    def fileHash(self, contents):
+        """Calcuate an MD5 hash of given contents."""
+        hash = hashlib.md5()
+        hash.update(contents)
+        hexMD5 = hash.hexdigest()
+        return hexMD5.upper()
+
+
+magicFinder = MagicFinder()
+magicFinder.perform()
+
+
 # 2) Validate the logFile during creation.  If any errors occur report them
 #    and abort the script.
 # 3) Validate the outputFile during creation. if any errors occur report and
@@ -69,156 +179,3 @@
 # Creating the Output File and Recording the Results ...
 #
 # Script Complete
-
-"""
-Calculate MD5 Hash of files in provided directory.
-
-Author: T. Palmer
-Initial Release: February 2018  Version 1.0.0
-
-Required PyPI Library: texttable
-"""
-
-import os
-import argparse
-import logging
-
-logging.basicConfig(
-    filename='week7Log.log',
-    level=logging.DEBUG,
-    format='%(asctime)s %(message)s'
-)
-logger = logging.getLogger('com.palmer.week7')
-
-
-class Week7:
-    sortedFileList = []
-    parsedArgs = None
-
-    def perform(self):
-        parser = argparse.ArgumentParser(
-            'Calculate MD5 Hash of files in provided directory'
-        )
-
-        parser.add_argument(
-            "-d",
-            "--path",
-            help="Specify the directory to hash",
-            required=True
-        )
-
-        self.parsedArgs = parser.parse_args()
-        path = self.parsedArgs.path
-
-        # 2) Validate that the directory exists
-        if not os.path.exists(path):
-            logger.error("Please provide a valid directory")
-            return
-
-        # 3) Using the OS module and the function os.listdir() obtain the list
-        #    of files that exist in the specified directory.
-        tempDictionary = {}
-        for filePath in os.listdir(path):
-            fullPath = os.path.join(path, filePath)
-            openedFile = self.validateAndOpenFile(fullPath, 'rb')
-            if not openedFile:
-                break
-
-            fileContents = self.readFile(openedFile)
-            if fileContents:
-                hashValue = self.fileHash(fileContents)
-                localModifiedTime = time.ctime(os.path.getmtime(fullPath))
-
-                # Store relevant data points in a dictionary using the path
-                # as the key
-                tempDictionary[fullPath] = {
-                    'name': os.path.basename(fullPath),
-                    'sizeInBytes': os.path.getsize(fullPath),
-                    'modifiedTime': localModifiedTime,
-                    'md5': hashValue
-                }
-
-            openedFile.close()
-
-        # Sort the dictionary by file size
-        self.sortedFileList = sorted(
-            tempDictionary.items(),
-            key=lambda x: x[1]['sizeInBytes'],
-            reverse=True
-        )
-        self.generateReport()
-
-    def generateReport(self):
-        # 4) For each file in the directory produce the following output for
-        # each File; sorted by FileSize (largest file first)
-        #
-        #    Path    FileName    FileSize   Last-Modified-Time  MD5 Hash
-        #
-        # Use the texttable module to format the output in a more
-        # human-readable format
-        table = Texttable()
-        table.add_row([
-            "Path",
-            "FileName",
-            "FileSize",
-            "Last-Modified-Time",
-            "MD5-Hash"
-        ])
-        for path, fileDictionary in self.sortedFileList:
-            table.add_row([
-                path,
-                fileDictionary["name"],
-                fileDictionary["sizeInBytes"],
-                fileDictionary["modifiedTime"],
-                fileDictionary["md5"]
-            ])
-        print(table.draw())
-
-    # If this file is valid, attempt to open it and return the opened file
-    def validateAndOpenFile(self, path, mode):
-        if self.isValidFile(path):
-            return self.openFile(path, mode)
-        else:
-            return None
-
-    # Verify that the path is valid, is not a symbolic link, and is real
-    def isValidFile(self, path):
-        if (os.path.exists(path) and
-           not os.path.islink(path) and
-           os.path.isfile(path)):
-            return True
-        else:
-            logger.error(path + ' is not a valid file.')
-            return False
-
-    # Attempt to open the file and return it
-    def openFile(self, path, mode):
-        try:
-            openFile = open(path, mode)
-        except IOError:
-            logger.error('Failed to open: ' + path)
-            return
-        else:
-            return openFile
-
-    # Attempt to read the file contents and return them
-    def readFile(self, openedFile):
-        try:
-            contents = openedFile.read()
-        except IOError:
-            openedFile.close()
-            logger.error('Failed to read: ' + openedFile)
-            return
-        else:
-            return contents
-
-    # Calcuate an MD5 hash of given contents
-    def fileHash(self, contents):
-        hash = hashlib.md5()
-        hash.update(contents)
-        hexMD5 = hash.hexdigest()
-        return hexMD5.upper()
-
-
-scanner = FileScan()
-scanner.perform()
