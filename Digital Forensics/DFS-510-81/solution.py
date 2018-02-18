@@ -9,6 +9,9 @@ import os
 import argparse
 import hashlib
 import logging
+import time
+import binascii
+from itertools import izip_longest
 
 
 # 5) The script will:
@@ -54,6 +57,7 @@ class MagicFinder:
         """Perform magic number extraction business logic."""
         self.printOut("Extracting File Stats ...")
         self.inputFileStats = os.fstat(self.parsedArgs.inputFile.fileno())
+        localModifiedTime = time.ctime(self.inputFileStats.st_mtime)
 
         # self.printOut("Opening the Input File ...")
         # self.logger.info(
@@ -64,7 +68,7 @@ class MagicFinder:
         inputContents = self.readFile(self.parsedArgs.inputFile)
         self.logger.info(
             "File: " + self.parsedArgs.inputFile.name +
-            " Read the file stats Sucess"
+            " Read the file stats Success"
         )
 
         self.printOut("Hashing the File Contents - SHA256 ...")
@@ -74,11 +78,7 @@ class MagicFinder:
             " SHA256: " + fileHash
         )
         self.printOut("Reading the first 32 bytes of the file ...")
-        # 5d) Read the first 32 bytes of the inputFile convert them to a Hex
-        # ASCII representation (hint use the binascii standard library) and
-        # then write them to the output file
-        # TODO: Read the magic number from the inputFile
-        magicNumber = "32-42-12-43"
+        magicNumber = self.magicNumber(inputContents)
         self.logger.info(
             "File: " + self.parsedArgs.inputFile.name +
             " Header Read: " + magicNumber
@@ -88,27 +88,24 @@ class MagicFinder:
         # 3) Validate the outputFile during creation. if any errors occur
         #    report and log them and abort the script.
         # 5c) Open the output file for writing
-        # Record information about the input file:
-        #         File Path
-        #         File Size
-        #         Last-Modified-Time
-        # TODO: Open and write to output file
-        outputFile = self.validateAndOpenFile(self.parsedArgs.outputFile, 'w')
-        # Your output file should look like this.
-        #
-        # File Name: Solution.py
-        # File Size: 7570
-        # Last Modified: Wed Oct 25 17:26:16 2017
-        # SHA256 Hash: 2f1cfd7abc52bee5b5ce1d8b591f9f75e3a73935d980b9ace022a9028e84adb8
-        # File Header: 27-27-27-0d-0a-44-46-53-2d-35-31-30-20-57-45-45-4b-20-37-20-53-4f-4c-55-54-49-4f-4e-0d-0a-50-52
-        outputFile.write("File Name: " + self.parsedArgs.inputFile.name)
-        outputFile.write("File Size: " + self.inputFileStats.st_size())
+        # Record information about the input file: File Path, File Size,
+        # Last-Modified-Time
+        self.outputFile = self.openFile(self.parsedArgs.outputFile, 'w')
+        self.outputFile.write(
+            "File Name: " + self.parsedArgs.inputFile.name + "\n"
+        )
+        self.outputFile.write(
+            "File Size: " + str(self.inputFileStats.st_size) + "\n"
+        )
+        self.outputFile.write("File Modified: " + localModifiedTime + "\n")
+        self.outputFile.write("SHA256 Hash: " + fileHash + "\n")
+        self.outputFile.write("File Header: " + magicNumber + "\n")
 
         # 5f) Record information about the output file to the log (and to the
         #     screen if verbose is selected)
         # 5e) Close Both Files once all bytes have been written
         self.parsedArgs.inputFile.close()
-        outputFile.close()
+        self.outputFile.close()
         self.printOut("Script Complete")
 
     def setupParsedArguments(self):
@@ -177,23 +174,6 @@ class MagicFinder:
         if self.parsedArgs.verbose:
             print(message)
 
-    def validateAndOpenFile(self, path, mode):
-        """If the file is valid, open it and return the opened file."""
-        if self.isValidFile(path):
-            return self.openFile(path, mode)
-        else:
-            return None
-
-    def isValidFile(self, path):
-        """Verify the path is valid, is not a symbolic link, and is real."""
-        if (os.path.exists(path) and
-           not os.path.islink(path) and
-           os.path.isfile(path)):
-            return True
-        else:
-            self.logger.error(path + ' is not a valid file.')
-            return False
-
     def openFile(self, path, mode):
         """Attempt to open the file and return it."""
         try:
@@ -215,13 +195,33 @@ class MagicFinder:
         else:
             return contents
 
-    # TODO: Convert to SHA256 hash
     def fileHash(self, contents):
-        """Calcuate an MD5 hash of given contents."""
-        hash = hashlib.md5()
+        """Calcuate the SHA256 hash of the passed file contents."""
+        hash = hashlib.sha256()
         hash.update(contents)
-        hexMD5 = hash.hexdigest()
-        return hexMD5.upper()
+        hexSHA256 = hash.hexdigest()
+        return hexSHA256.upper()
+
+    def magicNumber(self, contents):
+        """Parse the magic number from the passed file contents."""
+        # 5d) Read the first 32 bytes of the inputFile and convert them to a
+        # Hex ASCII representation using the binascii standard library.
+        asciiContents = binascii.hexlify(contents[:32])
+        tuples = self.grouper(asciiContents, 2)
+
+        # Map the returned array of tuples, and join on '-'
+        formattedOutput = '-'.join(map(lambda x: ''.join(x), tuples))
+        return formattedOutput
+
+    def grouper(self, iterable, n, fillvalue=None):
+        """
+        Slice a string into groups.
+
+        Source:
+            https://docs.python.org/3/library/itertools.html#itertools-recipes
+        """
+        args = [iter(iterable)] * n
+        return list(izip_longest(*args, fillvalue=fillvalue))
 
 
 magicFinder = MagicFinder()
