@@ -63,6 +63,8 @@ class FileScan:
                 hashValue = self.fileHash(fileContents)
                 localModifiedTime = time.ctime(os.path.getmtime(fullPath))
 
+                # Store relevant data points in a dictionary using the path
+                # as the key
                 tempDictionary[fullPath] = {
                     'name': os.path.basename(fullPath),
                     'sizeInBytes': os.path.getsize(fullPath),
@@ -72,6 +74,7 @@ class FileScan:
 
             openedFile.close()
 
+        # Sort the dictionary by file size
         self.sortedFileList = sorted(
             tempDictionary.items(),
             key=lambda x: x[1]['sizeInBytes'],
@@ -85,7 +88,8 @@ class FileScan:
         #
         #    Path    FileName    FileSize   Last-Modified-Time  MD5 Hash
         #
-        # Sort output by file size
+        # Use the texttable module to format the output in a more
+        # human-readable format
         table = Texttable()
         table.add_row([
             "Path",
