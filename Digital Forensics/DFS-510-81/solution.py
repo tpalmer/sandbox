@@ -59,11 +59,6 @@ class MagicFinder:
         self.inputFileStats = os.fstat(self.parsedArgs.inputFile.fileno())
         localModifiedTime = time.ctime(self.inputFileStats.st_mtime)
 
-        # self.printOut("Opening the Input File ...")
-        # self.logger.info(
-        #     "File: " + self.parsedArgs.inputFile.name +
-        #     " Open File Success"
-        # )
         self.printOut("Reading the Input File Contents ...")
         inputContents = self.readFile(self.parsedArgs.inputFile)
         self.logger.info(
