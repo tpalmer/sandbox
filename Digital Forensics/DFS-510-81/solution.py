@@ -14,21 +14,6 @@ import binascii
 from itertools import izip_longest
 
 
-# 5) The script will:
-#     a) Setup the logfile for recording information
-#     b) Open the input file for "read-binary"
-#        Record information about the input file to the log. (and the screen
-#        if verbose is selected)
-#         File Path
-#         File Size
-#         Last-Modified-Time
-#     c) Open the output file for writing
-#     d) Read the first 32 bytes of the inputFile convert them to a Hex ASCII
-#        representation (hint use the binascii standard library) and then
-#        write them to the output file
-#     e) Close Both Files once all bytes have been written
-#     f) Record information about the output file to the log (and to the
-#        screen if verbose is selected)
 class MagicFinder:
     """Responsible for magic number extraction business logic."""
 
