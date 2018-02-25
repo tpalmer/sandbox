@@ -26,6 +26,7 @@ class MagicCompare:
         self.initializeExtensions()
 
     def perform(self):
+        """Perform magic number comparison business logic."""
         path = self.parsedArgs.path
         for filePath in os.listdir(path):
             fullPath = os.path.join(path, filePath)
@@ -40,11 +41,11 @@ class MagicCompare:
                 print("Checking " + fullPath)
                 mime = magic.from_file(fullPath, mime=True)
                 if fileExtension in self.extensions:
-                    foundMIME = self.extensions[fileExtension]["mime"]
-                    if mime != foundMIME:
+                    allowedMIME = self.extensions[fileExtension]["mime"]
+                    if mime != allowedMIME:
                         print("Discrepancy found:")
                         print("\tMagic detected: " + mime)
-                        print("\tLocal found: " + foundMIME)
+                        print("\tLocal found: " + allowedMIME)
 
     def initializeExtensions(self):
         """
@@ -80,14 +81,14 @@ class MagicCompare:
             return openFile
 
     def validateAndOpenFile(self, path, mode):
-        """If the file is valid, open it and return the opened file"""
+        """If the file is valid, open it and return the opened file."""
         if self.isValidFile(path):
             return self.openFile(path, mode)
         else:
             return False
 
     def isValidFile(self, path):
-        """Verify the path is valid, is not a symbolic link, and is real"""
+        """Verify the path is valid, is not a symbolic link, and is real."""
         if (os.path.exists(path) and
            not os.path.islink(path) and
            os.path.isfile(path)):
@@ -96,7 +97,7 @@ class MagicCompare:
             return False
 
     def readFile(self, openedFile):
-        """Attempt to read the file contents and return them"""
+        """Attempt to read the file contents and return them."""
         try:
             contents = openedFile.read()
         except IOError:
